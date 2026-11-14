@@ -51,6 +51,7 @@ services:
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
       - BACKEND_API_URL=http://web:8000/api/v1
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8000}
     depends_on:
       web:
         condition: service_healthy

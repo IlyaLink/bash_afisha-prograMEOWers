@@ -5,9 +5,11 @@ import logging
 import sys
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.types import ErrorEvent
 
+from bot.api_client import api_client
 from bot.config import bot_settings
 from bot.handlers.catalog import router as catalog_router
 from bot.handlers.start import router as start_router
@@ -27,8 +29,22 @@ async def main():
         )
         return
 
-    bot = Bot(token=token, parse_mode=ParseMode.MARKDOWN)
+    # Настройка и валидация адреса бэкенда
+    backend_url = bot_settings.BACKEND_API_URL
+    api_client.base_url = backend_url
+    logger.info("🌐 Подключение Telegram-бота к REST API: %s", api_client.base_url)
+
+    bot = Bot(
+        token=token,
+        default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN),
+    )
     dp = Dispatcher()
+
+    # Передача API-клиента в workflow_data для хендлеров и middleware
+    dp.workflow_data["api_client"] = api_client
+    dp.workflow_data["backend_api_url"] = api_client.base_url
+    dp["api_client"] = api_client
+    dp["backend_api_url"] = api_client.base_url
 
     # Порядок регистрации роутеров: команды и фильтры перед общим обработчиком свободного текста
     dp.include_router(start_router)
@@ -39,24 +55,31 @@ async def main():
     # Глобальный обработчик ошибок (ТЗ 6.2 - бот не должен падать на неожиданных ошибках)
     @dp.error()
     async def global_error_handler(event: ErrorEvent):
-        logger.exception("Глобальный перехватчик: ошибка при обработке события: %s", event.exception)
+        logger.exception("Unhandled bot error", exc_info=event.exception)
+        error_msg = (
+            "⚠️ Произошла непредвиденная ошибка при обработке запроса. "
+            "Пожалуйста, попробуйте ещё раз или воспользуйтесь командой /start для возврата в главное меню."
+        )
         try:
             if event.update.message:
-                await event.update.message.answer(
-                    "⚠️ Произошла ошибка при обработке запроса. "
-                    "Пожалуйста, попробуйте ещё раз или воспользуйтесь командой /start для возврата в главное меню."
-                )
+                await event.update.message.answer(error_msg, parse_mode=None)
             elif event.update.callback_query:
-                await event.update.callback_query.answer(
-                    "⚠️ Произошла ошибка. Пожалуйста, повторите попытку.",
-                    show_alert=True,
-                )
-        except Exception:
-            pass
+                # Пытаемся ответить на callback toast (если ещё не был отвечен)
+                try:
+                    await event.update.callback_query.answer("⚠️ Произошла ошибка. Пожалуйста, повторите попытку.", show_alert=True)
+                except Exception:
+                    pass
+                # Обязательно отправляем сообщение в чат, чтобы пользователь видел статус
+                if event.update.callback_query.message:
+                    await event.update.callback_query.message.answer(error_msg, parse_mode=None)
+                else:
+                    await bot.send_message(chat_id=event.update.callback_query.from_user.id, text=error_msg, parse_mode=None)
+        except Exception as send_err:
+            logger.error("Не удалось отправить сообщение об ошибке пользователю: %s", send_err)
 
     logger.info("🤖 Telegram-бот 'Афиша культуры Башкортостана' успешно запущен...")
     try:
-        await dp.start_polling(bot)
+        await dp.start_polling(bot, api_client=api_client)
     finally:
         await bot.session.close()
 

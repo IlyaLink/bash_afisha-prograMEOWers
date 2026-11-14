@@ -27,6 +27,16 @@ async def test_widget_page(async_client: httpx.AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_widget_demo_page(async_client: httpx.AsyncClient):
+    """GET /widget-demo возвращает 200 OK и интерактивный конструктор с кодом iframe."""
+    response = await async_client.get("/widget-demo")
+    assert response.status_code == 200
+    assert "text/html" in response.headers.get("content-type", "")
+    assert "<iframe" in response.text
+    assert "Конструктор параметров встраивания" in response.text
+
+
+@pytest.mark.asyncio
 async def test_admin_page_unauthorized_has_www_authenticate(async_client: httpx.AsyncClient):
     """GET /admin без авторизации возвращает 401 и заголовок WWW-Authenticate: Basic."""
     response = await async_client.get("/admin")

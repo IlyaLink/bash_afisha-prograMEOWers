@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from bot.handlers.catalog import (
+    cb_filter_weekend,
     format_event_message,
     process_custom_date_input,
     process_custom_price_input,
@@ -230,3 +231,101 @@ def test_keyboards_composition():
     assert "Показать ещё ⏩" in pag_buttons
     assert "🔍 Новый поиск" in pag_buttons
     assert "« Главное меню" in pag_buttons
+
+
+def make_mock_callback(data: str = "period_weekend", user_id: int = 123456789) -> MagicMock:
+    """Создание мока aiogram CallbackQuery."""
+    call = MagicMock()
+    call.data = data
+    call.answer = AsyncMock()
+    call.from_user = MagicMock()
+    call.from_user.id = user_id
+    call.from_user.username = "test_user"
+    call.bot = MagicMock()
+    call.bot.send_message = AsyncMock()
+
+    msg = make_mock_message(user_id=user_id)
+    msg.edit_text = AsyncMock()
+    call.message = msg
+    return call
+
+
+@pytest.mark.asyncio
+async def test_cb_filter_weekend_answers_and_loads_events():
+    """Проверка нажатия на инлайн-кнопку 'Афиша на выходные': всплывающее уведомление и отправка карточек."""
+    call = make_mock_callback(data="period_weekend")
+
+    fake_events_data = {
+        "items": [
+            {
+                "id": "test-uuid-1",
+                "title": "Спектакль в субботу",
+                "category": "спектакль",
+                "date_start": "2026-11-21T18:00:00",
+                "city": "Уфа",
+                "venue": "Русдрамтеатр",
+                "address": "пр. Октября, 79",
+                "price_min": 400,
+                "price_max": 1200,
+                "is_free": False,
+                "age_limit": 12,
+                "description": "Классический спектакль выходного дня.",
+                "org_link": "https://example.com/tickets",
+                "source_url": "https://culture.bashkortostan.ru/events/1",
+            }
+        ],
+        "meta": {
+            "total": 1,
+            "page": 1,
+            "size": 3,
+            "pages": 1,
+            "has_next": False,
+            "has_prev": False,
+        },
+    }
+
+    with patch("bot.handlers.catalog.api_client.get_events", new_callable=AsyncMock) as mock_get_events:
+        mock_get_events.return_value = fake_events_data
+
+        await cb_filter_weekend(call)
+
+        # 1. Проверяем тост-уведомление
+        call.answer.assert_awaited_once_with("Загрузка афиши на выходные...")
+
+        # 2. Проверяем HTTP-запрос к API бэкенда с параметром period=weekend
+        mock_get_events.assert_awaited_once()
+        call_kwargs = mock_get_events.call_args[1]
+        assert call_kwargs.get("period") == "weekend"
+        assert call_kwargs.get("page") == 1
+        assert call_kwargs.get("size") == 3
+
+        # 3. Проверяем, что в чат отправлена карточка мероприятия и пагинация
+        assert call.message.answer.await_count >= 2
+        first_call_text = call.message.answer.call_args_list[0][0][0]
+        assert "Спектакль в субботу" in first_call_text
+        assert "Русдрамтеатр" in first_call_text
+
+        # 4. Проверяем информационную строку пагинации
+        second_call_text = call.message.answer.call_args_list[1][0][0]
+        assert "Показано 1 из 1 мероприятий" in second_call_text
+
+
+@pytest.mark.asyncio
+async def test_cb_filter_weekend_server_error_notifies_user():
+    """При сетевой ошибке или недоступности бэкенда пользователь получает понятное сообщение, а не тишину."""
+    call = make_mock_callback(data="period_weekend")
+
+    with patch("bot.handlers.catalog.api_client.get_events", new_callable=AsyncMock) as mock_get_events:
+        mock_get_events.side_effect = RuntimeError("Connection refused to http://web:8000/api/v1")
+
+        await cb_filter_weekend(call)
+
+        call.answer.assert_awaited_once_with("Загрузка афиши на выходные...")
+        mock_get_events.assert_awaited_once()
+
+        # Пользователю в чат доставлено понятное сообщение об ошибке
+        call.message.answer.assert_awaited_once()
+        error_msg = call.message.answer.call_args[0][0]
+        assert "Не удалось загрузить события с сервера" in error_msg
+        assert "Connection refused" in error_msg
+

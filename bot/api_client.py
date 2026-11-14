@@ -1,15 +1,43 @@
 """HTTP-клиент для взаимодействия Telegram-бота с REST API (ТЗ 6.2)."""
 
+import logging
+import os
 from typing import Any, Dict, List, Optional
 import httpx
 from bot.config import bot_settings
+
+logger = logging.getLogger("afisha.bot.api_client")
 
 
 class BackendAPIClient:
     """Асинхронный клиент к REST API 'Афиша культуры Башкортостана'."""
 
     def __init__(self, base_url: Optional[str] = None):
-        self.base_url = (base_url or bot_settings.BACKEND_API_URL).rstrip("/")
+        self._base_url = base_url
+
+    @property
+    def base_url(self) -> str:
+        """Динамическое определение базового URL с нормализацией суффикса /api/v1."""
+        url = (
+            self._base_url
+            or os.getenv("BACKEND_API_URL")
+            or bot_settings.BACKEND_API_URL
+            or "http://web:8000/api/v1"
+        )
+        url = url.rstrip("/")
+        if not url.endswith("/api/v1"):
+            url = f"{url}/api/v1"
+        return url
+
+    @base_url.setter
+    def base_url(self, value: Optional[str]):
+        if value:
+            val = value.rstrip("/")
+            if not val.endswith("/api/v1"):
+                val = f"{val}/api/v1"
+            self._base_url = val
+        else:
+            self._base_url = None
 
     async def get_events(
         self,
@@ -43,10 +71,16 @@ class BackendAPIClient:
         if price_max is not None:
             params["price_max"] = price_max
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(f"{self.base_url}/events", params=params)
-            resp.raise_for_status()
-            return resp.json()
+        target_url = f"{self.base_url}/events"
+        logger.info("HTTP запрос к бэкенду: GET %s params=%s", target_url, params)
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(target_url, params=params)
+                resp.raise_for_status()
+                return resp.json()
+        except Exception as e:
+            logger.error("Ошибка при запросе к REST API (%s): %s", target_url, e, exc_info=True)
+            raise
 
     async def explain_empty(
         self,
@@ -77,8 +111,8 @@ class BackendAPIClient:
                 resp = await client.get(f"{self.base_url}/events/explain-empty", params=params)
                 if resp.status_code == 200:
                     return resp.json()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Не удалось получить пояснения к пустой выдаче: %s", e)
         return {}
 
     async def get_event_by_id(self, event_id: str) -> Optional[Dict[str, Any]]:

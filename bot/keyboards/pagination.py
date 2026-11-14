@@ -15,12 +15,15 @@ def get_event_card_keyboard(
 
     # Кнопка билетов или первоисточника
     target_link = org_link or source_url
-    if target_link:
+    if target_link and not any(h in target_link for h in ("localhost", "127.0.0.1", "web:")) and target_link.startswith(("http://", "https://")):
         buttons.append([InlineKeyboardButton(text="🎟 Купить билет / Источник ↗", url=target_link)])
 
-    # Постоянная ссылка на карточку на нашем сайте
+    # Постоянная ссылка на карточку на нашем сайте (Telegram API отклоняет URL с localhost / 127.0.0.1)
     web_url = f"{bot_settings.PUBLIC_BASE_URL}/events/{event_id}"
-    buttons.append([InlineKeyboardButton(text="🌐 Открыть на сайте", url=web_url)])
+    if not any(h in web_url for h in ("localhost", "127.0.0.1", "web:")) and web_url.startswith(("http://", "https://")):
+        buttons.append([InlineKeyboardButton(text="🌐 Открыть на сайте", url=web_url)])
+    else:
+        buttons.append([InlineKeyboardButton(text="🌐 Карточка события (сайт)", callback_data=f"event_info:{event_id[:8]}")])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

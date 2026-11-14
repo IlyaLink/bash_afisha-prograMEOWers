@@ -33,13 +33,21 @@ async def test_filter_events_by_city(async_client: httpx.AsyncClient):
 
 @pytest.mark.asyncio
 async def test_filter_events_by_category(async_client: httpx.AsyncClient):
-    """Проверка фильтрации по категории."""
+    """Проверка фильтрации по категории (русское название и slug)."""
     resp = await async_client.get("/api/v1/events", params={"category": "спектакль"})
     assert resp.status_code == 200
 
     data = resp.json()
     for item in data["items"]:
         assert item["category"].lower() == "спектакль"
+
+    # Проверка по slug concert
+    resp_slug = await async_client.get("/api/v1/events", params={"category": "concert"})
+    assert resp_slug.status_code == 200
+    data_slug = resp_slug.json()
+    assert len(data_slug["items"]) > 0
+    for item in data_slug["items"]:
+        assert item["category"].lower() == "концерт"
 
 
 @pytest.mark.asyncio

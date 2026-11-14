@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Демонстрация и код встраивания виджета — Афиша культуры Башкортостана{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+        <div class="flex items-center space-x-3 mb-4">
+            <span class="text-3xl">🧩</span>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Встраиваемый виджет «Афиша Башкортостана»</h1>
+                <p class="text-sm text-slate-500">Готовый модуль для интеграции на официальные порталы органов власти и учреждений культуры (ТЗ 6.3)</p>
+            </div>
+        </div>
+
+        <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-lg mb-6 text-sm text-blue-900 leading-relaxed">
+            <strong>Характеристики виджета:</strong>
+            <ul class="list-disc list-inside mt-1 space-y-1 text-xs md:text-sm text-blue-800">
+                <li>Полная изоляция стилей от принимающего сайта (работает внутри <code class="bg-blue-100 px-1 rounded">&lt;iframe&gt;</code>).</li>
+                <li><strong>Отсутствие сторонних cookies</strong> и трекеров (полное соответствие требованиям приватности ТЗ 6.3).</li>
+                <li>Адаптивная вёрстка от 320px до любой ширины контейнера.</li>
+                <li>Гибкая параметризация по городу (<code class="bg-blue-100 px-1 rounded">city</code>), категории (<code class="bg-blue-100 px-1 rounded">category</code>) и периоду (<code class="bg-blue-100 px-1 rounded">period</code>).</li>
+            </ul>
+        </div>
+
+        <!-- Настройка параметров -->
+        <div class="border-t border-slate-200 pt-6 mb-6">
+            <h2 class="text-base font-semibold text-slate-800 mb-4">Конструктор параметров встраивания:</h2>
+            <form method="GET" action="/widget-demo" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Город (city):</label>
+                    <select name="city" class="w-full text-sm border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border">
+                        <option value="">Все города РБ</option>
+                        <option value="Уфа" {% if city == 'Уфа' %}selected{% endif %}>Уфа</option>
+                        <option value="Стерлитамак" {% if city == 'Стерлитамак' %}selected{% endif %}>Стерлитамак</option>
+                        <option value="Салават" {% if city == 'Салават' %}selected{% endif %}>Салават</option>
+                        <option value="Нефтекамск" {% if city == 'Нефтекамск' %}selected{% endif %}>Нефтекамск</option>
+                        <option value="Белорецк" {% if city == 'Белорецк' %}selected{% endif %}>Белорецк</option>
+                        <option value="Сибай" {% if city == 'Сибай' %}selected{% endif %}>Сибай</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Категория (category):</label>
+                    <select name="category" class="w-full text-sm border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border">
+                        <option value="">Все категории</option>
+                        <option value="спектакль" {% if category == 'спектакль' %}selected{% endif %}>Спектакли</option>
+                        <option value="концерт" {% if category == 'концерт' %}selected{% endif %}>Концерты</option>
+                        <option value="выставка" {% if category == 'выставка' %}selected{% endif %}>Выставки</option>
+                        <option value="фестиваль" {% if category == 'фестиваль' %}selected{% endif %}>Фестивали</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Период (period):</label>
+                    <select name="period" class="w-full text-sm border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border">
+                        <option value="">Все даты</option>
+                        <option value="today" {% if period == 'today' %}selected{% endif %}>Сегодня</option>
+                        <option value="tomorrow" {% if period == 'tomorrow' %}selected{% endif %}>Завтра</option>
+                        <option value="weekend" {% if period == 'weekend' %}selected{% endif %}>Выходные</option>
+                        <option value="week" {% if period == 'week' %}selected{% endif %}>На этой неделе</option>
+                    </select>
+                </div>
+
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium text-sm py-2 px-4 rounded-lg transition shadow-sm">
+                        Применить параметры
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Готовый HTML код для копирования -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Готовый HTML-код для вставки на ваш сайт:</span>
+                <span class="text-xs text-slate-400">Скопируйте в разметку страницы</span>
+            </div>
+            <pre class="bg-slate-900 text-slate-100 p-4 rounded-xl text-xs overflow-x-auto font-mono selection:bg-blue-600"><code>{{ iframe_code }}</code></pre>
+        </div>
+
+        <!-- Живой предпросмотр виджета в iframe -->
+        <div>
+            <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center space-x-2">
+                <span>Интерактивный просмотр (живой &lt;iframe&gt;):</span>
+            </h3>
+            <div class="border-2 border-dashed border-slate-300 rounded-2xl p-4 bg-slate-100/50 flex justify-center">
+                <iframe src="{{ widget_url }}" width="100%" height="{{ height }}" frameborder="0" style="max-width: 580px; border: none; border-radius: 12px; overflow: hidden;" title="Афиша культуры Башкортостана"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

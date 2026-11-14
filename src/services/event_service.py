@@ -91,9 +91,27 @@ class EventService:
         if city:
             filters.append(Event.city.ilike(city.strip()))
 
-        # 3. Фильтр по категории
+        # 3. Фильтр по категории (поддержка как русскоязычного названия, так и slug)
         if category:
-            filters.append(Event.category.ilike(category.strip()))
+            cat_clean = category.strip().lower()
+            slug_to_name = {
+                "concert": "концерт",
+                "theatre": "спектакль",
+                "theater": "спектакль",
+                "exhibition": "выставка",
+                "festival": "фестиваль",
+                "excursion": "экскурсия",
+                "cinema": "кино",
+                "movie": "кино",
+                "other": "другое",
+            }
+            resolved_cat = slug_to_name.get(cat_clean, cat_clean)
+            filters.append(
+                or_(
+                    Event.category.ilike(cat_clean),
+                    Event.category.ilike(resolved_cat),
+                )
+            )
 
         # 4. Фильтр по периоду или явным датам
         p_start, p_end = get_period_dates(period)

@@ -107,6 +107,8 @@ async def widget_embed_page(
     city: Optional[str] = None,
     category: Optional[str] = None,
     period: Optional[str] = None,
+    height: Optional[int] = None,
+    size: int = 6,
     theme: str = "light",
     db: AsyncSession = Depends(get_db_session),
 ):
@@ -117,7 +119,7 @@ async def widget_embed_page(
         category=category,
         period=period,
         page=1,
-        size=6,
+        size=size,
     )
     return templates.TemplateResponse(
         request,
@@ -127,7 +129,48 @@ async def widget_embed_page(
             "city": city,
             "category": category,
             "period": period,
+            "height": height,
             "theme": theme,
+        },
+    )
+
+
+@web_router.get("/widget-demo", response_class=HTMLResponse)
+async def widget_demo_page(
+    request: Request,
+    city: Optional[str] = None,
+    category: Optional[str] = None,
+    period: Optional[str] = None,
+    height: int = 560,
+):
+    """Демо-страница встраивания виджета с интерактивным кодом iframe (ТЗ 6.3)."""
+    params = []
+    if city:
+        params.append(f"city={city}")
+    if category:
+        params.append(f"category={category}")
+    if period:
+        params.append(f"period={period}")
+
+    query_str = f"?{'&'.join(params)}" if params else ""
+    widget_url = f"/widget{query_str}"
+    full_widget_url = f"{str(request.base_url).rstrip('/')}{widget_url}"
+    iframe_code = (
+        f'<iframe src="{full_widget_url}" width="100%" height="{height}" '
+        f'frameborder="0" style="border: none; border-radius: 12px; overflow: hidden;" '
+        f'title="Афиша культуры Башкортостана"></iframe>'
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "widget_demo.html",
+        {
+            "city": city,
+            "category": category,
+            "period": period,
+            "height": height,
+            "widget_url": widget_url,
+            "iframe_code": iframe_code,
         },
     )
 
