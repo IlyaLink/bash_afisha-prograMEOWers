@@ -1,12 +1,11 @@
-"""FSM состояния Telegram-бота."""
+"""FSM-состояния для поиска и фильтрации в Telegram-боте."""
 
 from aiogram.fsm.state import State, StatesGroup
 
 
 class SearchStates(StatesGroup):
-    waiting_for_query = State()
+    """Состояния ожидания ввода пользователя."""
 
-
-class SubscriptionStates(StatesGroup):
-    waiting_for_city = State()
-    waiting_for_category = State()
+    waiting_for_query = State()  # Поиск по ключевому слову / названию
+    waiting_for_date = State()   # Ввод конкретной даты (ДД.ММ.ГГГГ)
+    waiting_for_price = State()  # Ввод максимальной цены билета

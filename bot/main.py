@@ -6,6 +6,7 @@ import sys
 
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
+from aiogram.types import ErrorEvent
 
 from bot.config import bot_settings
 from bot.handlers.catalog import router as catalog_router
@@ -29,11 +30,29 @@ async def main():
     bot = Bot(token=token, parse_mode=ParseMode.MARKDOWN)
     dp = Dispatcher()
 
-    # Порядок регистрации роутеров важен: команды и фильтры перед обработчиком свободного текста
+    # Порядок регистрации роутеров: команды и фильтры перед общим обработчиком свободного текста
     dp.include_router(start_router)
     dp.include_router(catalog_router)
     dp.include_router(subscriptions_router)
     dp.include_router(text_search_router)
+
+    # Глобальный обработчик ошибок (ТЗ 6.2 - бот не должен падать на неожиданных ошибках)
+    @dp.error()
+    async def global_error_handler(event: ErrorEvent):
+        logger.exception("Глобальный перехватчик: ошибка при обработке события: %s", event.exception)
+        try:
+            if event.update.message:
+                await event.update.message.answer(
+                    "⚠️ Произошла ошибка при обработке запроса. "
+                    "Пожалуйста, попробуйте ещё раз или воспользуйтесь командой /start для возврата в главное меню."
+                )
+            elif event.update.callback_query:
+                await event.update.callback_query.answer(
+                    "⚠️ Произошла ошибка. Пожалуйста, повторите попытку.",
+                    show_alert=True,
+                )
+        except Exception:
+            pass
 
     logger.info("🤖 Telegram-бот 'Афиша культуры Башкортостана' успешно запущен...")
     try:

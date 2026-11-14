@@ -17,6 +17,8 @@ class BackendAPIClient:
         city: Optional[str] = None,
         category: Optional[str] = None,
         period: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
         is_free: Optional[bool] = None,
         price_max: Optional[int] = None,
         page: int = 1,
@@ -32,6 +34,10 @@ class BackendAPIClient:
             params["category"] = category
         if period:
             params["period"] = period
+        if date_from:
+            params["date_from"] = date_from
+        if date_to:
+            params["date_to"] = date_to
         if is_free is not None:
             params["is_free"] = is_free
         if price_max is not None:
@@ -41,6 +47,39 @@ class BackendAPIClient:
             resp = await client.get(f"{self.base_url}/events", params=params)
             resp.raise_for_status()
             return resp.json()
+
+    async def explain_empty(
+        self,
+        q: Optional[str] = None,
+        city: Optional[str] = None,
+        category: Optional[str] = None,
+        period: Optional[str] = None,
+        is_free: Optional[bool] = None,
+        price_max: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Получение рекомендаций при пустой выдаче."""
+        params: Dict[str, Any] = {}
+        if q:
+            params["q"] = q
+        if city:
+            params["city"] = city
+        if category:
+            params["category"] = category
+        if period:
+            params["period"] = period
+        if is_free is not None:
+            params["is_free"] = is_free
+        if price_max is not None:
+            params["price_max"] = price_max
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{self.base_url}/events/explain-empty", params=params)
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
+        return {}
 
     async def get_event_by_id(self, event_id: str) -> Optional[Dict[str, Any]]:
         """Получение карточки события."""

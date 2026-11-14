@@ -405,8 +405,14 @@ class ImportService:
             age_limit = 0
 
         # Статус
-        status = str(row.get("status", "опубликовано")).strip().lower()
-        if status not in ("опубликовано", "черновик", "отменено"):
+        raw_status = str(row.get("status", "опубликовано")).strip().lower()
+        if raw_status in ("cancelled", "canceled", "отменено"):
+            status = "отменено"
+        elif raw_status in ("draft", "черновик"):
+            status = "черновик"
+        elif raw_status in ("published", "опубликовано"):
+            status = "опубликовано"
+        else:
             status = "опубликовано"
 
         # Длительность

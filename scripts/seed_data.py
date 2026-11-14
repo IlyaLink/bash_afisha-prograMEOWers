@@ -76,14 +76,15 @@ async def seed():
 
         await db.commit()
 
-        # Импорт тестовых событий
-        seed_file = Path("data/events_seed.json")
+        # Импорт тестовых событий (предпочтительно полный датасет 100+ событий)
+        seed_100 = Path("data/bashkortostan_events_100.json")
+        seed_file = seed_100 if seed_100.exists() else Path("data/events_seed.json")
         if seed_file.exists():
-            print(f"Импорт 30+ событий из {seed_file}...")
+            print(f"Импорт 100+ событий из {seed_file}...")
             content = seed_file.read_bytes()
             import_service = ImportService(db, user="system_seed")
             report = await import_service.import_from_json(content)
-            print(f"Отчет об импорте: добавлено={report.added}, обновлено={report.updated}, сведено={report.merged}, отклонено={report.rejected_count} ({report.duration_ms} мс)")
+            print(f"Отчет об импорте: добавлено={report.added}, обновлено={report.updated}, сведено={report.merged}, отклонено={report.rejected_count} ({report.duration_ms:.1f} мс)")
 
     await engine.dispose()
     print("Сидирование успешно завершено!")
