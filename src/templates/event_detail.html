@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.title }} — Афиша культуры Башкортостана{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Хлебные крошки для навигации в 1-2 клика -->
+    <nav class="flex items-center space-x-2 text-xs text-slate-500 mb-6" aria-label="Хлебные крошки">
+        <a href="/" class="hover:text-blue-700 transition">Главная</a>
+        <span>/</span>
+        <a href="/?city={{ event.city }}" class="hover:text-blue-700 transition">{{ event.city }}</a>
+        <span>/</span>
+        <a href="/?category={{ event.category }}" class="hover:text-blue-700 transition">{{ event.category | capitalize }}</a>
+        <span>/</span>
+        <span class="text-slate-800 font-medium truncate max-w-xs">{{ event.title }}</span>
+    </nav>
+
+    <!-- ЯРКАЯ ПЛАШКА ОТМЕНЫ МЕРОПРИЯТИЯ (ТЗ 6.1) -->
+    {% if event.is_cancelled or event.status == 'отменено' %}
+    <div class="mb-6 bg-red-600 text-white rounded-xl p-5 shadow-md flex items-start space-x-4 border-2 border-red-700 animate-pulse" role="alert">
+        <span class="text-3xl" aria-hidden="true">⚠️</span>
+        <div>
+            <h2 class="text-lg font-extrabold uppercase tracking-wide">Мероприятие отменено организатором!</h2>
+            <p class="text-xs sm:text-sm text-red-100 mt-1">
+                Данное событие снято с репертуара или отменено учреждением культуры. Пожалуйста, не планируйте посещение или уточните информацию о возврате билетов у организатора.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Основная карточка -->
+    <article class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-6 sm:p-8">
+
+            <!-- Заголовок и бейджи -->
+            <div class="flex flex-wrap items-center gap-2 mb-4">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-900">
+                    {{ event.category | capitalize }}
+                </span>
+                {% if event.language == 'башкирский' %}
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-900">
+                    На башкирском языке
+                </span>
+                {% endif %}
+                <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                    {{ event.age_limit }}+
+                </span>
+                {% if event.is_free %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
+                    Вход бесплатный
+                </span>
+                {% endif %}
+            </div>
+
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight mb-4">
+                {{ event.title }}
+            </h1>
+
+            <!-- Основные параметры в сетке -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6 text-sm">
+                <div class="flex items-start space-x-3">
+                    <span class="text-xl text-slate-500" aria-hidden="true">📅</span>
+                    <div>
+                        <span class="block text-xs text-slate-500 font-medium">Начало</span>
+                        <time datetime="{{ event.date_start.isoformat() }}" class="font-bold text-slate-900">
+                            {{ event.date_start.strftime('%d.%m.%Y в %H:%M') }}
+                        </time>
+                        {% if event.duration_min %}
+                        <span class="text-xs text-slate-500"> (длительность ~{{ event.duration_min }} мин.)</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-3">
+                    <span class="text-xl text-slate-500" aria-hidden="true">📍</span>
+                    <div>
+                        <span class="block text-xs text-slate-500 font-medium">Место проведения</span>
+                        <span class="font-bold text-slate-900">{{ event.city }}</span>, {{ event.venue }}
+                        <div class="text-xs text-slate-600 mt-0.5">{{ event.address }}</div>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-3">
+                    <span class="text-xl text-slate-500" aria-hidden="true">🎟️</span>
+                    <div>
+                        <span class="block text-xs text-slate-500 font-medium">Стоимость билетов</span>
+                        <span class="font-bold text-slate-900">
+                            {% if event.is_free %}
+                                Бесплатно
+                            {% elif event.price_min > 0 and event.price_max > event.price_min %}
+                                {{ event.price_min }} – {{ event.price_max }} ₽
+                            {% elif event.price_min > 0 %}
+                                от {{ event.price_min }} ₽
+                            {% else %}
+                                Уточняется
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-start space-x-3">
+                    <span class="text-xl text-slate-500" aria-hidden="true">🌐</span>
+                    <div>
+                        <span class="block text-xs text-slate-500 font-medium">Язык и доступность</span>
+                        <span class="font-bold text-slate-900">
+                            {{ event.language or "Русский" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Описание события -->
+            <div class="prose max-w-none text-slate-800 text-sm sm:text-base leading-relaxed mb-8">
+                <h2 class="text-base font-bold text-slate-900 mb-2">О мероприятии</h2>
+                <p>{{ event.description or "Подробное описание мероприятия уточняется у организаторов." }}</p>
+            </div>
+
+            <!-- Теги -->
+            {% if event.tags %}
+            <div class="mb-8">
+                <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Метки</h3>
+                <div class="flex flex-wrap gap-1.5">
+                    {% for tag in event.tags %}
+                    <a href="/?tag={{ tag }}" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition">
+                        #{{ tag }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Кнопки действий -->
+            <div class="flex flex-wrap items-center gap-4 pt-6 border-t border-slate-200">
+                {% if not event.is_cancelled and event.status != 'отменено' %}
+                    {% if event.org_link %}
+                    <a href="{{ event.org_link }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm shadow transition">
+                        Купить билеты / Сайт организатора ↗
+                    </a>
+                    {% endif %}
+                {% endif %}
+
+                <a href="/feedback?event_id={{ event.id }}" class="inline-flex items-center px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-xs transition">
+                    Сообщить об ошибке или уточнении
+                </a>
+            </div>
+
+            <!-- СПИСОК ИСТОЧНИКОВ И ДЕДУПЛИКАЦИЯ (ТЗ 6.3) -->
+            <div class="mt-10 pt-6 border-t border-slate-200 bg-slate-50 -mx-6 -mb-6 sm:-mx-8 sm:-mb-8 p-6 sm:p-8">
+                <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+                    <span>Подтверждённые источники данных (дедупликация ТЗ)</span>
+                </h3>
+                <p class="text-xs text-slate-500 mb-3">
+                    Карточка сформирована на основе сведений из официальных источников. Повторные публикации сведены в единую карточку без дублирования.
+                </p>
+
+                <ul class="space-y-2 text-xs">
+                    {% for src in event.sources %}
+                    <li class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200">
+                        <div class="flex items-center space-x-2 truncate">
+                            <span class="text-slate-400">🔗</span>
+                            <span class="font-medium text-slate-800">{{ src.source_type }}:</span>
+                            <a href="{{ src.source_url }}" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:underline truncate">
+                                {{ src.source_url }}
+                            </a>
+                        </div>
+                        <span class="text-slate-400 whitespace-nowrap ml-3">
+                            {{ src.created_at.strftime('%d.%m.%Y') }}
+                        </span>
+                    </li>
+                    {% else %}
+                    <li class="text-xs text-slate-500 italic">
+                        Источник: {{ event.source_type }} ({{ event.source_url or "официальный релиз учреждения" }})
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+        </div>
+    </article>
+
+</div>
+{% endblock %}

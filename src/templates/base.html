@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full bg-slate-50 text-slate-900 antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>{% block title %}Афиша культуры Башкортостана{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bashkir: {
+                            blue: '#0055b8',
+                            green: '#008744',
+                            yellow: '#f4c430',
+                            dark: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- HTMX CDN -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: flex;
+        }
+        .htmx-request.htmx-indicator {
+            display: flex;
+        }
+        /* Высокий контраст и четкие фокусы для a11y */
+        :focus-visible {
+            outline: 2px solid #0055b8;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen font-sans selection:bg-amber-200">
+
+    <!-- ОБЯЗАТЕЛЬНЫЙ ДИСКЛЕЙМЕР В ШАПКЕ (ТЗ 6.1) -->
+    <div class="bg-amber-100 border-b border-amber-300 text-amber-950 px-4 py-2 text-xs md:text-sm text-center font-medium" role="alert">
+        Сервис является независимым информационным агрегатором и не является официальным сайтом Министерства культуры Республики Башкортостан.
+    </div>
+
+    <!-- Шапка сайта -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Логотип -->
+                <div class="flex items-center space-x-3">
+                    <a href="/" class="flex items-center space-x-2.5 text-slate-900 hover:text-blue-700 transition font-bold text-lg md:text-xl" aria-label="На главную">
+                        <span class="inline-block w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-teal-600 to-amber-400 text-white flex items-center justify-center shadow">
+                            🎭
+                        </span>
+                        <span>Афиша Башкортостана</span>
+                    </a>
+                </div>
+
+                <!-- Навигация -->
+                <nav class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-700" aria-label="Основная навигация">
+                    <a href="/" class="hover:text-blue-700 transition">Каталог</a>
+                    <a href="/feedback" class="hover:text-blue-700 transition">Организаторам</a>
+                    <a href="/widget" class="hover:text-blue-700 transition">Виджет</a>
+                    <a href="/docs" target="_blank" class="hover:text-blue-700 transition">REST API</a>
+                    <a href="/admin" class="px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 transition">Админка</a>
+                </nav>
+
+                <!-- Мобильная кнопка -->
+                <div class="flex md:hidden items-center space-x-2">
+                    <a href="/feedback" class="text-xs bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded font-medium text-slate-700">Организаторам</a>
+                    <a href="/admin" class="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1.5 rounded font-medium">Админ</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Основной контент -->
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Подвал сайта -->
+    <footer class="bg-slate-900 text-slate-400 py-10 mt-16 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 text-sm">
+                <div>
+                    <h3 class="text-white font-semibold mb-3 flex items-center space-x-2">
+                        <span>🎭 Афиша культуры Башкортостана</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Единый достоверный информационный сервис культурных событий республики: спектакли, концерты, выставки, фестивали и детские праздники.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-white font-medium mb-3">Интеграция и контракты</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="/docs" class="hover:text-white transition">OpenAPI 3.1 спецификация (/docs)</a></li>
+                        <li><a href="/widget" class="hover:text-white transition">Встраиваемый виджет для сайтов (iframe)</a></li>
+                        <li><a href="/feedback" class="hover:text-white transition">Форма обратной связи для учреждений культуры</a></li>
+                        <li><a href="/health" class="hover:text-white transition">Мониторинг доступности (/health)</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-medium mb-3">Города афиши</h4>
+                    <p class="text-xs leading-relaxed text-slate-400">
+                        Уфа, Стерлитамак, Салават, Нефтекамск, Октябрьский, Сибай, Белорецк, Туймазы, Ишимбай, Кумертау и другие населённые пункты РБ.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ОБЯЗАТЕЛЬНЫЙ ДИСКЛЕЙМЕР В ПОДВАЛЕ (ТЗ 6.1) -->
+            <div class="pt-6 border-t border-slate-800 text-center text-xs text-slate-400">
+                <p class="mb-2 font-medium text-slate-300">
+                    Сервис является независимым информационным агрегатором и не является официальным сайтом Министерства культуры Республики Башкортостан.
+                </p>
+                <p>© 2026 Афиша культуры Башкортостана. Все права защищены. Разработано в соответствии с ТЗ Хакатона (Уровень 2).</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,85 @@
+<div id="events-container">
+    {% if events %}
+        <!-- Сетка карточек (от 360px: 1 колонка, от 640px: 2 колонки, от 1024px: 3 колонки) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {% for event in events %}
+                {% include "partials/event_card.html" %}
+            {% endfor %}
+        </div>
+
+        <!-- Пагинация -->
+        {% if meta.pages > 1 %}
+        <nav class="flex items-center justify-between border-t border-slate-200 px-4 py-4 sm:px-0" aria-label="Пагинация">
+            <div class="flex flex-1 justify-between sm:justify-end space-x-3">
+                {% if meta.has_prev %}
+                <button
+                    hx-get="/?page={{ meta.page - 1 }}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_period %}&period={{ selected_period }}{% endif %}{% if selected_free %}&is_free=true{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                    hx-target="#events-container"
+                    hx-swap="outerHTML"
+                    hx-push-url="true"
+                    class="relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition">
+                    ← Предыдущая
+                </button>
+                {% endif %}
+
+                <span class="inline-flex items-center px-4 py-2 text-sm text-slate-600 font-medium">
+                    Страница {{ meta.page }} из {{ meta.pages }} (всего {{ meta.total }})
+                </span>
+
+                {% if meta.has_next %}
+                <button
+                    hx-get="/?page={{ meta.page + 1 }}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_period %}&period={{ selected_period }}{% endif %}{% if selected_free %}&is_free=true{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                    hx-target="#events-container"
+                    hx-swap="outerHTML"
+                    hx-push-url="true"
+                    class="relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition">
+                    Следующая →
+                </button>
+                {% endif %}
+            </div>
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <!-- Понятный разбор при пустой выдаче (ТЗ 6.1) -->
+        <div class="bg-white rounded-xl border border-slate-200 p-8 text-center max-w-2xl mx-auto my-8 shadow-sm">
+            <div class="w-16 h-16 bg-blue-50 text-blue-700 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                🔍
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">
+                {{ empty_explanation.title if empty_explanation else "Событий не найдено" }}
+            </h3>
+
+            {% if empty_explanation and empty_explanation.reasons %}
+            <div class="text-left bg-amber-50 border border-amber-200 rounded-lg p-4 my-4 text-sm text-amber-950">
+                <p class="font-semibold mb-2">Почему так получилось:</p>
+                <ul class="list-disc list-inside space-y-1 text-xs md:text-sm">
+                    {% for reason in empty_explanation.reasons %}
+                    <li>{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if empty_explanation and empty_explanation.suggestions %}
+            <div class="text-left bg-slate-50 border border-slate-200 rounded-lg p-4 my-4 text-sm text-slate-800">
+                <p class="font-semibold mb-2 text-blue-800">💡 Что можно сделать:</p>
+                <ul class="list-disc list-inside space-y-1 text-xs md:text-sm">
+                    {% for sugg in empty_explanation.suggestions %}
+                    <li>{{ sugg }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="mt-6 flex flex-wrap justify-center gap-3">
+                <a href="/" class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-medium text-sm transition">
+                    Сбросить все фильтры
+                </a>
+                <a href="/?city=Уфа" class="inline-flex items-center px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-sm transition">
+                    Показать афишу Уфы
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>

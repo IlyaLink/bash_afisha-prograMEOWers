@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Виджет культурных событий Башкортостана</title>
+    <!-- Изолированные компактные стили без сторонних cookies (ТЗ 6.3) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 12px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: transparent;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="max-w-xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-4">
+        <!-- Шапка виджета -->
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+            <div class="flex items-center space-x-2">
+                <span class="text-xl">🎭</span>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 leading-none">
+                        Культура Башкортостана
+                    </h3>
+                    <p class="text-[11px] text-slate-500 mt-0.5">
+                        {% if city %}Афиша: {{ city }}{% else %}События республики{% endif %}
+                    </p>
+                </div>
+            </div>
+            <a href="/" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-700 font-semibold hover:underline">
+                Все события →
+            </a>
+        </div>
+
+        <!-- Список мини-карточек -->
+        <div class="space-y-2.5">
+            {% for event in events %}
+            <a href="/events/{{ event.id }}" target="_blank" rel="noopener noreferrer" class="block p-2.5 rounded-lg border border-slate-100 hover:border-blue-300 hover:bg-blue-50/40 transition group">
+                <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+                    <span class="font-medium text-blue-800 bg-blue-50 px-2 py-0.5 rounded">
+                        {{ event.category | capitalize }}
+                    </span>
+                    <time datetime="{{ event.date_start.isoformat() }}">
+                        {{ event.date_start.strftime('%d.%m в %H:%M') }}
+                    </time>
+                </div>
+                <h4 class="text-xs font-bold text-slate-900 group-hover:text-blue-700 transition line-clamp-1 mb-1">
+                    {{ event.title }}
+                </h4>
+                <div class="flex items-center justify-between text-[11px] text-slate-600">
+                    <span class="truncate max-w-[200px]">{{ event.city }}, {{ event.venue }}</span>
+                    <span class="font-semibold text-slate-900 whitespace-nowrap">
+                        {% if event.is_free %}Бесплатно{% elif event.price_min > 0 %}от {{ event.price_min }} ₽{% else %}Вход свободный{% endif %}
+                    </span>
+                </div>
+            </a>
+            {% else %}
+            <p class="text-xs text-slate-500 text-center py-4">Событий по выбранным параметрам не найдено.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Подвал виджета -->
+        <div class="mt-3 pt-2 border-t border-slate-100 text-center">
+            <span class="text-[10px] text-slate-400">
+                Независимый информационный сервис «Афиша культуры Башкортостана»
+            </span>
+        </div>
+    </div>
+
+</body>
+</html>

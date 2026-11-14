@@ -1,0 +1,82 @@
+<article class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-slate-200 overflow-hidden flex flex-col h-full focus-within:ring-2 focus-within:ring-blue-600">
+    <!-- Верхняя плашка с бейджами -->
+    <div class="p-5 flex-grow flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between gap-2 mb-3">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800 border border-blue-200">
+                    {{ event.category | capitalize }}
+                </span>
+                <div class="flex items-center space-x-1.5">
+                    {% if event.language == 'башкирский' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800" title="Мероприятие на башкирском языке">
+                        Башҡортса
+                    </span>
+                    {% endif %}
+                    <span class="text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" aria-label="Возрастное ограничение">
+                        {{ event.age_limit }}+
+                    </span>
+                </div>
+            </div>
+
+            <!-- Название события -->
+            <h3 class="text-base font-bold text-slate-900 mb-2 line-clamp-2 leading-snug">
+                <a href="/events/{{ event.id }}" class="hover:text-blue-700 transition focus:outline-none">
+                    {{ event.title }}
+                </a>
+            </h3>
+
+            <!-- Описание -->
+            {% if event.description %}
+            <p class="text-xs text-slate-600 line-clamp-2 mb-3 leading-relaxed">
+                {{ event.description }}
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 space-y-2 text-xs text-slate-600">
+            <!-- Дата и время -->
+            <div class="flex items-center space-x-2">
+                <span aria-hidden="true" class="text-slate-400">📅</span>
+                <time datetime="{{ event.date_start.isoformat() }}" class="font-medium text-slate-800">
+                    {{ event.date_start.strftime('%d.%m.%Y в %H:%M') }}
+                </time>
+            </div>
+
+            <!-- Место проведения и город -->
+            <div class="flex items-start space-x-2">
+                <span aria-hidden="true" class="text-slate-400">📍</span>
+                <span class="line-clamp-1">
+                    <strong class="text-slate-800">{{ event.city }}</strong>, {{ event.venue }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Подвал карточки с ценой и кнопкой -->
+    <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex items-center justify-between">
+        <div>
+            {% if event.is_free %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-green-100 text-green-800">
+                Бесплатно
+            </span>
+            {% elif event.price_min > 0 and event.price_max > event.price_min %}
+            <span class="text-sm font-bold text-slate-900">
+                {{ event.price_min }} – {{ event.price_max }} ₽
+            </span>
+            {% elif event.price_min > 0 %}
+            <span class="text-sm font-bold text-slate-900">
+                от {{ event.price_min }} ₽
+            </span>
+            {% else %}
+            <span class="text-xs text-slate-500 font-medium">
+                Вход свободный
+            </span>
+            {% endif %}
+        </div>
+
+        <a href="/events/{{ event.id }}" class="inline-flex items-center text-xs font-semibold text-blue-700 hover:text-blue-800 group" aria-label="Подробнее о мероприятии {{ event.title }}">
+            Подробнее
+            <span class="ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
+        </a>
+    </div>
+</article>

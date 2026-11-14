@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Афиша культуры Башкортостана — Театры, концерты, выставки{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Заголовок и поиск -->
+    <div class="mb-8 text-center max-w-3xl mx-auto">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-3">
+            Культурная жизнь Башкортостана
+        </h1>
+        <p class="text-sm sm:text-base text-slate-600 mb-6">
+            Достоверный каталог спектаклей, концертов, выставок и фестивалей по всем городам республики.
+        </p>
+
+        <!-- Строка поиска с HTMX -->
+        <form
+            id="search-filter-form"
+            hx-get="/"
+            hx-target="#events-container"
+            hx-swap="outerHTML"
+            hx-trigger="submit, change from:select, change from:input[type='checkbox']"
+            hx-push-url="true"
+            class="relative max-w-2xl mx-auto">
+            <div class="relative flex items-center shadow-sm rounded-xl overflow-hidden border border-slate-300 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100">
+                <span class="pl-4 text-slate-400" aria-hidden="true">🔍</span>
+                <input
+                    type="search"
+                    name="q"
+                    id="search-input"
+                    value="{{ search_query or '' }}"
+                    placeholder="Поиск спектакля, концерта, артиста или площадки..."
+                    class="w-full py-3.5 pl-3 pr-28 text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none"
+                    aria-label="Поисковый запрос">
+                <button
+                    type="submit"
+                    class="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-semibold transition">
+                    Найти
+                </button>
+            </div>
+
+            <!-- Блок фильтров -->
+            <div class="mt-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-left">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Город -->
+                    <div>
+                        <label for="city-select" class="block text-xs font-semibold text-slate-700 mb-1">Город</label>
+                        <select
+                            id="city-select"
+                            name="city"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg py-2 px-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600">
+                            <option value="">Все города республики</option>
+                            {% for c in cities %}
+                            <option value="{{ c.name }}" {% if selected_city == c.name %}selected{% endif %}>
+                                {{ c.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Категория -->
+                    <div>
+                        <label for="category-select" class="block text-xs font-semibold text-slate-700 mb-1">Категория</label>
+                        <select
+                            id="category-select"
+                            name="category"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg py-2 px-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600">
+                            <option value="">Все категории</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.name }}" {% if selected_category == cat.name %}selected{% endif %}>
+                                {{ cat.name | capitalize }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Период -->
+                    <div>
+                        <label for="period-select" class="block text-xs font-semibold text-slate-700 mb-1">Когда</label>
+                        <select
+                            id="period-select"
+                            name="period"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg py-2 px-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600">
+                            <option value="">Все даты</option>
+                            <option value="today" {% if selected_period == 'today' %}selected{% endif %}>Сегодня</option>
+                            <option value="tomorrow" {% if selected_period == 'tomorrow' %}selected{% endif %}>Завтра</option>
+                            <option value="weekend" {% if selected_period == 'weekend' %}selected{% endif %}>В эти выходные</option>
+                            <option value="week" {% if selected_period == 'week' %}selected{% endif %}>На этой неделе</option>
+                        </select>
+                    </div>
+
+                    <!-- Язык и параметры -->
+                    <div>
+                        <label for="language-select" class="block text-xs font-semibold text-slate-700 mb-1">Язык</label>
+                        <select
+                            id="language-select"
+                            name="language"
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg py-2 px-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600">
+                            <option value="">Все языки</option>
+                            <option value="башкирский" {% if selected_language == 'башкирский' %}selected{% endif %}>Башкирский язык</option>
+                            <option value="русский" {% if selected_language == 'русский' %}selected{% endif %}>Русский язык</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Быстрые чекбоксы -->
+                <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center space-x-4">
+                        <label class="inline-flex items-center space-x-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="is_free"
+                                value="true"
+                                {% if selected_free %}checked{% endif %}
+                                class="rounded border-slate-300 text-blue-700 focus:ring-blue-600 h-4 w-4">
+                            <span class="font-medium text-slate-700">Только бесплатные события</span>
+                        </label>
+                    </div>
+
+                    <!-- Сброс -->
+                    <a href="/" class="text-blue-700 hover:text-blue-900 font-semibold transition">
+                        Сбросить фильтры
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Индикатор загрузки HTMX -->
+    <div class="htmx-indicator justify-center items-center py-10" role="status" aria-label="Загрузка событий...">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
+        <span class="ml-3 text-sm text-slate-600 font-medium">Обновление афиши...</span>
+    </div>
+
+    <!-- Контейнер карточек событий -->
+    {% include "partials/event_list.html" %}
+
+</div>
+{% endblock %}

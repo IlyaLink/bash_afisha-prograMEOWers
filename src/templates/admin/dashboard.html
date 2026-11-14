@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Админ-панель модератора — Афиша культуры Башкортостана{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Заголовок админки -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Административная панель модератора</h1>
+            <p class="text-xs sm:text-sm text-slate-500">Авторизован как: <strong class="text-slate-800">{{ admin_user }}</strong></p>
+        </div>
+        <div class="flex items-center space-x-3 text-xs">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full font-semibold bg-emerald-100 text-emerald-800">
+                ● База данных подключена
+            </span>
+            <a href="/" class="text-blue-700 hover:underline">Вернуться на сайт →</a>
+        </div>
+    </div>
+
+    <!-- Вкладки админки: Импорт / Модерация / Журнал аудита -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- Левая колонка: Форма импорта CSV/JSON -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <h2 class="text-base font-bold text-slate-900 mb-2 flex items-center space-x-2">
+                    <span>📥 Импорт CSV / JSON</span>
+                </h2>
+                <p class="text-xs text-slate-500 mb-4">
+                    Загрузите файл с афишей. Повторная загрузка того же файла идемпотентна. Одинаковые события из разных источников автоматически сводятся в единую карточку (ТЗ 6.1, 6.3).
+                </p>
+
+                <form id="import-form" class="space-y-4">
+                    <div>
+                        <label for="import_file" class="block text-xs font-semibold text-slate-700 mb-1">
+                            Файл событий (.json или .csv)
+                        </label>
+                        <input
+                            type="file"
+                            id="import_file"
+                            name="file"
+                            accept=".json,.csv"
+                            required
+                            class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                    </div>
+
+                    <button
+                        type="submit"
+                        id="import-btn"
+                        class="w-full py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg text-xs transition shadow-sm">
+                        Запустить импорт
+                    </button>
+                </form>
+
+                <!-- Блок отчёта об импорте -->
+                <div id="import-report-box" class="hidden mt-5 pt-4 border-t border-slate-100 text-xs">
+                    <h3 class="font-bold text-slate-900 mb-2">Отчёт об импорте:</h3>
+                    <div class="grid grid-cols-2 gap-2 text-slate-700 mb-3">
+                        <div class="bg-slate-50 p-2 rounded border">Всего: <strong id="rep-total">0</strong></div>
+                        <div class="bg-green-50 text-green-900 p-2 rounded border border-green-200">Добавлено: <strong id="rep-added">0</strong></div>
+                        <div class="bg-blue-50 text-blue-900 p-2 rounded border border-blue-200">Обновлено: <strong id="rep-updated">0</strong></div>
+                        <div class="bg-purple-50 text-purple-900 p-2 rounded border border-purple-200">Сведено дублей: <strong id="rep-merged">0</strong></div>
+                    </div>
+                    <div id="rep-rejected-box" class="hidden bg-red-50 text-red-900 p-2.5 rounded border border-red-200 mb-2">
+                        <span class="font-bold">Отклонено записей: <span id="rep-rejected-count">0</span></span>
+                        <ul id="rep-rejected-list" class="list-disc list-inside mt-1 space-y-0.5 text-[11px]"></ul>
+                    </div>
+                    <span id="rep-duration" class="text-[10px] text-slate-400"></span>
+                </div>
+            </div>
+
+            <!-- Тестовые сиды быстрой загрузки -->
+            <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 text-xs">
+                <h3 class="font-bold text-slate-800 mb-1">Демонстрационные наборы данных:</h3>
+                <p class="text-slate-500 mb-2">В папке проекта подготовлены валидные файлы для демонстрации ТЗ:</p>
+                <ul class="space-y-1 text-slate-600 list-disc list-inside">
+                    <li><code class="bg-white px-1 rounded border">data/events_seed.json</code> — 30+ событий РБ</li>
+                    <li><code class="bg-white px-1 rounded border">data/events_duplicate.json</code> — дубликат из другого источника</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Правая колонка: Управление событиями и Журнал изменений -->
+        <div class="lg:col-span-2 space-y-8">
+
+            <!-- Список мероприятий и смена статусов -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">Модерация событий ({{ events | length }})</h2>
+                        <p class="text-xs text-slate-500">Управление статусами («опубликовано», «черновик», «отменено»)</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                            <tr>
+                                <th class="p-3">Мероприятие</th>
+                                <th class="p-3">Город</th>
+                                <th class="p-3">Дата</th>
+                                <th class="p-3">Статус</th>
+                                <th class="p-3 text-right">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            {% for ev in events %}
+                            <tr id="row-{{ ev.id }}" class="hover:bg-slate-50/50">
+                                <td class="p-3 font-semibold text-slate-900 max-w-[200px] truncate">
+                                    <a href="/events/{{ ev.id }}" target="_blank" class="hover:text-blue-700 truncate block">
+                                        {{ ev.title }}
+                                    </a>
+                                </td>
+                                <td class="p-3 whitespace-nowrap">{{ ev.city }}</td>
+                                <td class="p-3 whitespace-nowrap">{{ ev.date_start.strftime('%d.%m.%Y') }}</td>
+                                <td class="p-3 whitespace-nowrap">
+                                    <span id="badge-{{ ev.id }}" class="px-2 py-0.5 rounded text-[11px] font-bold {% if ev.status == 'опубликовано' %}bg-green-100 text-green-800{% elif ev.status == 'отменено' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                        {{ ev.status }}
+                                    </span>
+                                </td>
+                                <td class="p-3 text-right whitespace-nowrap space-x-1">
+                                    {% if ev.status != 'опубликовано' %}
+                                    <button onclick="changeStatus('{{ ev.id }}', 'опубликовано')" class="px-2 py-1 bg-green-50 text-green-700 hover:bg-green-100 rounded text-[11px] font-medium">
+                                        Опубликовать
+                                    </button>
+                                    {% endif %}
+                                    {% if ev.status != 'отменено' %}
+                                    <button onclick="changeStatus('{{ ev.id }}', 'отменено')" class="px-2 py-1 bg-red-50 text-red-700 hover:bg-red-100 rounded text-[11px] font-medium">
+                                        Снять (отмена)
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Журнал изменений (Audit Logs ТЗ 6.1) -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100">
+                    <h2 class="text-base font-bold text-slate-900">Журнал изменений (Audit Logs)</h2>
+                    <p class="text-xs text-slate-500">Кто, когда и что изменил в системе (ТЗ 6.1)</p>
+                </div>
+
+                <div class="overflow-x-auto max-h-80">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider border-b border-slate-100 sticky top-0">
+                            <tr>
+                                <th class="p-3">Время (UTC)</th>
+                                <th class="p-3">Пользователь</th>
+                                <th class="p-3">Действие</th>
+                                <th class="p-3">Сущность</th>
+                                <th class="p-3">Детали</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-600">
+                            {% for l in logs %}
+                            <tr>
+                                <td class="p-3 whitespace-nowrap text-slate-400">{{ l.created_at.strftime('%d.%m %H:%M:%S') }}</td>
+                                <td class="p-3 font-semibold text-slate-800 whitespace-nowrap">{{ l.user }}</td>
+                                <td class="p-3 whitespace-nowrap">
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-800">
+                                        {{ l.action }}
+                                    </span>
+                                </td>
+                                <td class="p-3 whitespace-nowrap">{{ l.entity_type }} #{{ l.entity_id[:8] }}...</td>
+                                <td class="p-3 text-[11px] text-slate-500 font-mono truncate max-w-[200px]">{{ l.changes }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="p-4 text-center text-slate-400">Записей аудита пока нет.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+// Загрузка файла и импорт
+document.getElementById('import-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('import-btn');
+    const fileInput = document.getElementById('import_file');
+    if (!fileInput.files.length) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Импортирование...';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+        const res = await fetch('/api/v1/admin/import', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            const rep = await res.json();
+            document.getElementById('import-report-box').classList.remove('hidden');
+            document.getElementById('rep-total').textContent = rep.total;
+            document.getElementById('rep-added').textContent = rep.added;
+            document.getElementById('rep-updated').textContent = rep.updated;
+            document.getElementById('rep-merged').textContent = rep.merged;
+            document.getElementById('rep-duration').textContent = 'Время обработки: ' + rep.duration_ms + ' мс';
+
+            const rejBox = document.getElementById('rep-rejected-box');
+            const rejList = document.getElementById('rep-rejected-list');
+            if (rep.rejected_count > 0) {
+                rejBox.classList.remove('hidden');
+                document.getElementById('rep-rejected-count').textContent = rep.rejected_count;
+                rejList.innerHTML = '';
+                rep.rejected_items.forEach(it => {
+                    const li = document.createElement('li');
+                    li.textContent = (it.title ? '«' + it.title + '»: ' : '') + it.reason;
+                    rejList.appendChild(li);
+                });
+            } else {
+                rejBox.classList.add('hidden');
+            }
+        } else {
+            alert('Ошибка импорта: ' + res.statusText);
+        }
+    } catch (err) {
+        alert('Сбой сети при импорте');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Запустить импорт';
+    }
+});
+
+// Смена статуса события
+async function changeStatus(eventId, newStatus) {
+    try {
+        const res = await fetch('/api/v1/admin/events/' + eventId + '/status', {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({status: newStatus})
+        });
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert('Не удалось изменить статус');
+        }
+    } catch (e) {
+        alert('Ошибка связи с сервером');
+    }
+}
+</script>
+{% endblock %}
